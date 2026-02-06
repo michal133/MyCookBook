@@ -60,7 +60,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
 
         firebaseManager = FirebaseManager.getInstance();
 
-        // אתחול Cloudinary - שמים ב-try catch למקרה שכבר אותחל
+        // Initialize Cloudinary - wrapped in try-catch in case it's already initialized
         try {
             Map<String, Object> config = new HashMap<>();
             config.put("cloud_name", "djrghjwsr");
@@ -75,7 +75,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         setupRecyclerView();
         setupClickListeners();
 
-        // בדיקה אם הגענו במצב עריכה
+        // Check if we are in edit mode
         Intent intent = getIntent();
         isEditMode = intent.getBooleanExtra("edit_recipe", false);
         if (isEditMode && intent.hasExtra("recipe")) {
@@ -117,12 +117,12 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         }
 
         if (editingIngredientPosition >= 0) {
-            // עדכון רכיב קיים
+            // Update existing ingredient
             ingredients.set(editingIngredientPosition, new Ingredient(name, amount, unit));
             editingIngredientPosition = -1;
             binding.btnAddIngredient.setText(R.string.btn_add_ingredient);
         } else {
-            // הוספה חדשה
+            // Add new ingredient
             ingredients.add(new Ingredient(name, amount, unit));
         }
 
@@ -157,7 +157,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
     private void prefillFieldsForEdit(Recipe recipe) {
         binding.etTitle.setText(recipe.getTitle());
 
-        // בחירת הקטגוריה הנכונה בספינר
+        // Select the correct category in the spinner
         if (!TextUtils.isEmpty(recipe.getCategory())) {
             ArrayAdapter<CharSequence> adapter = (ArrayAdapter<CharSequence>) binding.spinnerCategory.getAdapter();
             for (int i = 0; i < adapter.getCount(); i++) {
@@ -170,7 +170,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
 
         binding.etInstructions.setText(recipe.getInstructions());
 
-        // העתקת הרשימה כדי לא לדרוס את המקורית לפני שמירה
+        // Copy the list to avoid overwriting the original before saving
         ingredients = new ArrayList<>(recipe.getIngredients());
         ingredientAdapter.updateIngredients(ingredients);
 
@@ -193,21 +193,21 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         }
 
         binding.progressBar.setVisibility(View.VISIBLE);
-        binding.btnSave.setEnabled(false); // מניעת לחיצה כפולה
+        binding.btnSave.setEnabled(false); // Prevent double clicking
 
         if (selectedImageUri != null) {
-            // יש תמונה חדשה להעלות
+            // New image selected - upload to cloud
             uploadImageToCloudinary(selectedImageUri);
         } else if (isEditMode && editingRecipe != null) {
-            // עריכה בלי שינוי תמונה - שומרים את ה-URL הישן
+            // Edit mode without image change - save with existing URL
             saveDataToFirestore(editingRecipe.getImageUrl());
         } else {
-            // מתכון חדש בלי תמונה
+            // New recipe without image
             saveDataToFirestore("");
         }
     }
 
-    // העלאת תמונה לענן ואז קריאה לשמירה ב-Firebase
+    // Upload image to cloud and then save data to Firebase
     private void uploadImageToCloudinary(Uri imageUri) {
         Log.d(TAG, "Starting image upload...");
         MediaManager.get().upload(imageUri)
@@ -238,13 +238,13 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
                 }).dispatch();
     }
 
-    // הפונקציה הסופית ששומרת את הנתונים ב-DB
+    // Final function to save data to DB
     private void saveDataToFirestore(String imageUrl) {
         String title = binding.etTitle.getText().toString();
         String category = binding.spinnerCategory.getSelectedItem().toString();
         String instructions = binding.etInstructions.getText().toString();
 
-        // יצירת אובייקט המתכון
+        // Create recipe object
         String recipeId = (isEditMode && editingRecipe != null) ? editingRecipe.getId() : null;
 
         Recipe recipe = new Recipe(
@@ -258,13 +258,13 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         );
 
         if (isEditMode && recipeId != null) {
-            // עדכון מתכון קיים
+            // Update existing recipe
             firebaseManager.updateRecipe(recipe).addOnCompleteListener(task -> {
                 binding.progressBar.setVisibility(View.GONE);
                 if (task.isSuccessful()) {
                     Toast.makeText(this, "Recipe updated!", Toast.LENGTH_SHORT).show();
 
-                    // החזרת התוצאה למסך הקודם כדי שיתרענן מיד
+                    // Return result to previous screen to refresh immediately
                     Intent resultIntent = new Intent();
                     resultIntent.putExtra("updated_recipe", recipe);
                     setResult(RESULT_OK, resultIntent);
@@ -275,7 +275,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
                 }
             });
         } else {
-            // יצירת מתכון חדש
+            // Create new recipe
             firebaseManager.addRecipe(recipe, task -> {
                 binding.progressBar.setVisibility(View.GONE);
                 if (task.isSuccessful()) {
@@ -306,7 +306,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         binding.etIngredientUnit.setText(ingredient.getUnit());
 
         editingIngredientPosition = position;
-        binding.btnAddIngredient.setText("Update"); // קצר ולעניין
+        binding.btnAddIngredient.setText("Update"); // Short and clear
         binding.etIngredientName.requestFocus();
     }
 
@@ -315,7 +315,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         ingredients.remove(position);
         ingredientAdapter.updateIngredients(ingredients);
 
-        // אם מחקנו את מה שערכנו כרגע - נאפס את המצב
+        // If we deleted what we were currently editing - reset state
         if (editingIngredientPosition == position) {
             editingIngredientPosition = -1;
             binding.btnAddIngredient.setText(R.string.btn_add_ingredient);

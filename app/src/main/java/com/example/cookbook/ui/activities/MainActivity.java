@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
         }
     }
 
-    // --- Setup Login & Register Screen ---
+    // Setup Login & Register Screen
     private void setupLoginScreen() {
         setContentView(R.layout.activity_main); // Load login layout
 
@@ -111,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
         });
     }
 
-    // --- Setup Main App UI (Bottom Navigation) ---
+    //Setup Main App UI (Bottom Navigation)
     private void setupMainAppUI(Bundle savedInstanceState) {
         setContentView(R.layout.main_app); // Switch to main app layout
 
